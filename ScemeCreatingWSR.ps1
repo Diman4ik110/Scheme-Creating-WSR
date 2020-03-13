@@ -84,6 +84,10 @@ function Add-VMForStand {
 # Creating elements
 ########################
 
+[System.Windows.Forms.Label]$ConnectStatusLabel = New-Object System.Windows.Forms.Label
+[System.Windows.Forms.Label]$ConnectIPLabel = New-Object System.Windows.Forms.Label
+[System.Windows.Forms.Label]$ConnectStatus = New-Object System.Windows.Forms.Label
+
 [System.Windows.Forms.Label]$RAMSettingLabel = New-Object System.Windows.Forms.Label
 [System.Windows.Forms.Label]$HDDSettingLabel = New-Object System.Windows.Forms.Label
 
@@ -107,6 +111,7 @@ function Add-VMForStand {
 [System.Windows.Forms.Label]$VMNameLabel = New-Object System.Windows.Forms.Label
 [System.Windows.Forms.Label]$VMTypeLabel = New-Object System.Windows.Forms.Label
 [System.Windows.Forms.Label]$OSTypeLabel = New-Object System.Windows.Forms.Label
+[System.Windows.Forms.Label]$Adapter = New-Object System.Windows.Forms.Label
 
 [System.Windows.Forms.Button]$CreateButton = New-Object System.Windows.Forms.Button
 
@@ -114,17 +119,26 @@ function Add-VMForStand {
 # Element Events
 #########################
 function Create() {
-    
+    if ($ConnectStatus.Text -eq "Connected") {
+        
+    }else {
+        [System.Windows.Forms.MessageBox]::Show("Connect to ESXI Server first!","Warning")
+    }
 }
 function Get_NetList() {
     if ($vSphereIP.Text -eq "") {
         return
     }else {
-        Connect-VIServer -Server $vSphereIP.Text
+        $tmp = Connect-VIServer -Server $vSphereIP.Text
         for ($i = 0; $i -lt (Get-VirtualPortGroup).Name.Count; $i++) {
             $Global:AdapterList += (Get-VirtualPortGroup)[$i].Name
         }
         Update-AdapterList
+        if ($tmp.IsConnected) {
+            $ConnectStatus.ForeColor = "Green"
+            $ConnectStatus.Text = "Connected"
+            $ConnectIPLabel.Text = $tmp.Name
+        }
     }
 }
 function Update-AdapterList {
@@ -146,9 +160,29 @@ function ButtonClick () {
 $form.Height = 350
 $form.Width = 500
 $form.Text = "Creating VM Script"
+$form.add_FormClosing({
+    param($sender,$e)
+    if ($ConnectStatusLabel.Text -eq "Connected") {
+        Disconnect-VIServer $ConnectIPLabel.Text -Confirm -Force
+    }
+})
 $form.StartPosition = "CenterScreen"
 
 $Position += 10
+$ConnectStatusLabel.Width = 100
+$ConnectStatusLabel.Text = "Connection status: "
+$ConnectStatusLabel.Location = New-Object System.Drawing.Point(110, $Position)
+
+$ConnectStatus.Width = 80
+$ConnectStatus.Text = "not connected"
+$ConnectStatus.ForeColor = "Red"
+$ConnectStatus.Location = New-Object System.Drawing.Point(220, $Position)
+
+$ConnectIPLabel.Width = 80
+$ConnectIPLabel.Text = "N/A"
+$ConnectIPLabel.Location = New-Object System.Drawing.Point(300, $Position)
+
+$Position += 25
 $RAMSettingLabel.Width = 55
 $RAMSettingLabel.Text = "RAM, Gb"
 $RAMSettingLabel.Location = New-Object System.Drawing.Point(110, $Position)
@@ -189,6 +223,7 @@ $vSphereIP.Location = New-Object System.Drawing.Point(120, $Position)
 
 $NetList.Width = 80
 $NetList.Height = 20
+$NetList.Text = "Connect"
 $NetList.Add_Click({Get_NetList})
 $NetList.Location = New-Object System.Drawing.Point(280, $Position)
 
@@ -205,23 +240,29 @@ $MainBox.Controls.Add($CompleteStatusLabel)
 
 $VMNameLabel.Width = 120
 $VMNameLabel.Text = "VM Name"
-$VMNameLabel.Location = New-Object System.Drawing.Point(40, 5)
+$VMNameLabel.Location = New-Object System.Drawing.Point(65, 5)
 $MainBox.Controls.Add($VMNameLabel)
 
 $VMTypeLabel.Width = 50
 $VMTypeLabel.Text = "OS"
-$VMTypeLabel.Location = New-Object System.Drawing.Point(186, 5)
+$VMTypeLabel.Location = New-Object System.Drawing.Point(190, 5)
 $MainBox.Controls.Add($VMTypeLabel)
 
-$OSTypeLabel.Width = 90
+$OSTypeLabel.Width = 50
 $OSTypeLabel.Text = "OS Type"
 $OSTypeLabel.Location = New-Object System.Drawing.Point(265, 5)
 $MainBox.Controls.Add($OSTypeLabel)
 
+$Adapter.Width = 50
+$Adapter.Text = "Adapter"
+$Adapter.Location = New-Object System.Drawing.Point(370, 5)
+$MainBox.Controls.Add($Adapter)
+
+
 Add-VMForStand -Count $Global:VMCount -Location $Global:VMLocation -Container $MainBox
 
-$Position += 120
-$CreateButton.Location = New-Object System.Drawing.Point(160, $Position)
+$Position += 110
+$CreateButton.Location = New-Object System.Drawing.Point(190, $Position)
 $CreateButton.Width = 100
 $CreateButton.Height = 30
 $CreateButton.Text = "Create"
@@ -230,6 +271,10 @@ $CreateButton.Add_Click({ Create })
 ###########################
 # Adding element to Form
 ###########################
+
+$form.Controls.Add($ConnectStatusLabel)
+$form.Controls.Add($ConnectStatus)
+$form.Controls.Add($ConnectIPLabel)
 
 $form.Controls.Add($RAMSettingLabel)
 $form.Controls.Add($HDDSettingLabel)
