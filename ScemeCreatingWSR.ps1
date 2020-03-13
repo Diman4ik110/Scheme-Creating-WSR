@@ -6,7 +6,7 @@ $form = New-Object System.Windows.Forms.Form
 ########################
 # Variables
 ########################
-$Global:Stands = @()
+$Global:VMS = @()
 $Global:VMTypes = @()
 $Global:OSTypes = @()
 $Global:Adapters = @()
@@ -58,7 +58,7 @@ function Add-VMForStand {
 
     # Type Select Box Setting
     $VMType.Width = 80
-    $VMType.Items.Add("Debian")
+    $VMType.Items.Add("Debian 10")
     $VMType.Items.Add("Cent OS 8")
     $VMType.Items.Add("Windows Server 2019")
     $VMType.Items.Add("Windows 10")
@@ -68,11 +68,11 @@ function Add-VMForStand {
     $OSType.Items.Add("GUI")
     $OSType.Items.Add("Console")
     $OSType.Location = New-Object System.Drawing.Point(250, $Location)
-
     
     $NetAdapter.Width = 100
     $NetAdapter.Location = New-Object System.Drawing.Point(340, $Location)
     
+    $Global:VMS += $VMName
     $Global:Adapters += $NetAdapter
     $Global:VMTypes += $VMType
     $Global:OSTypes += $OSType
@@ -120,7 +120,11 @@ function Add-VMForStand {
 #########################
 function Create() {
     if ($ConnectStatus.Text -eq "Connected") {
-        
+        for ($i = 0; $i -lt $Global:VMS.Count; $i++) {
+            Write-Host $Global:VMS[$i].Text
+            Write-Host $Global:Adapters[$i].Text
+            #New-VM -Name $Global:VMS[$i].Text -Portgroup $Global:Adapters[$i].Text 
+        }
     }else {
         [System.Windows.Forms.MessageBox]::Show("Connect to ESXI Server first!","Warning")
     }
@@ -140,6 +144,9 @@ function Get_NetList() {
             $ConnectIPLabel.Text = $tmp.Name
         }
     }
+}
+function Get-VMTypeName($BOXID) {
+    return $Global:VMTypes[$BOXID].Text
 }
 function Update-AdapterList {
     for ($i = 0; $i -lt $Global:Adapters.Count; $i++) {
@@ -233,10 +240,6 @@ $MainBox.Width = 445
 $MainBox.Height = 85
 $MainBox.Location = New-Object System.Drawing.Point(20, $Position)
 $MainBox.BorderStyle = 1
-
-$MainBox.Controls.Add($OSNameLabel)
-$MainBox.Controls.Add($VMNameLabel)
-$MainBox.Controls.Add($CompleteStatusLabel)
 
 $VMNameLabel.Width = 120
 $VMNameLabel.Text = "VM Name"
